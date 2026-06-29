@@ -311,8 +311,9 @@ function pixelColor(val, noDataValue) {
 // ================================================================
 const map = L.map('map', { center: [DC_LAT, DC_LON], zoom: 14 });
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_matter/{z}/{x}/{y}{r}.png', {
-  attribution: '© <a href="https://www.openstreetmap.org/">OpenStreetMap</a>, © <a href="https://carto.com/">CartoDB</a>',
+// Fond de carte OpenStreetMap (fiable depuis GitHub Pages)
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   maxZoom: 19,
 }).addTo(map);
 
@@ -376,9 +377,10 @@ async function showYear(year) {
 
     const layer = new GeoRasterLayer({
       georaster,
-      opacity: 1,
+      opacity: 0.8,
       pixelValuesToColorFn: values => pixelColor(values[0], georaster.noDataValue),
       resolution: 256,
+      projectionFunc: (x, y) => [x, y],
     });
 
     // Stocker le georaster sur la couche pour le clic
