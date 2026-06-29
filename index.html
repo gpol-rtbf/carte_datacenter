@@ -17,17 +17,17 @@
 
 <style>
 :root{
-  --ink:#0a0c11;
-  --panel:rgba(16,18,25,.66);
-  --panel-solid:#12141b;
-  --line:rgba(255,255,255,.09);
-  --line-strong:rgba(255,255,255,.18);
-  --text:#ECEAE3;
-  --dim:#9b9ca6;
-  --mute:#62636c;
-  --hot:#e8593c;
-  --hot-2:#f4a582;
-  --cold:#6aa8e0;
+  --ink:#f0f2f5;
+  --panel:rgba(255,255,255,.82);
+  --panel-solid:#ffffff;
+  --line:rgba(0,0,0,.10);
+  --line-strong:rgba(0,0,0,.18);
+  --text:#111318;
+  --dim:#52545e;
+  --mute:#9b9ca6;
+  --hot:#d73027;
+  --hot-2:#b2182b;
+  --cold:#2166ac;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
@@ -39,24 +39,24 @@ body{
 }
 
 /* ---- Carte plein écran ---- */
-#map{position:absolute;inset:0;background:#0e1015;z-index:1}
-.leaflet-container{background:#0e1015!important;font-family:inherit}
+#map{position:absolute;inset:0;background:#e8eaed;z-index:1}
+.leaflet-container{background:#e8eaed!important;font-family:inherit}
 /* décaler les contrôles de zoom sous le titre */
 .leaflet-top.leaflet-left{margin-top:84px;margin-left:4px}
 .leaflet-control-zoom{border:none!important;box-shadow:0 4px 18px rgba(0,0,0,.4)!important}
 .leaflet-control-zoom a{
-  background:rgba(18,20,27,.82)!important;color:#cfd0d6!important;
+  background:rgba(255,255,255,.92)!important;color:#333!important;
   border:1px solid var(--line)!important;backdrop-filter:blur(8px);
   width:32px;height:32px;line-height:30px;font-size:17px;
 }
 .leaflet-control-zoom a:first-child{border-radius:9px 9px 0 0!important}
 .leaflet-control-zoom a:last-child{border-radius:0 0 9px 9px!important}
-.leaflet-control-zoom a:hover{background:rgba(40,42,52,.9)!important;color:#fff!important}
+.leaflet-control-zoom a:hover{background:rgba(40,42,52,.9)!important;color:#000!important}
 .leaflet-control-attribution{
-  background:rgba(0,0,0,.5)!important;color:#54555d!important;
+  background:rgba(255,255,255,.7)!important;color:#888!important;
   font-size:10px!important;backdrop-filter:blur(4px);border-radius:6px 0 0 0;
 }
-.leaflet-control-attribution a{color:#7b7c85!important}
+.leaflet-control-attribution a{color:#555!important}
 
 /* ---- Panneaux flottants (verre) ---- */
 .glass{
@@ -103,7 +103,7 @@ body{
   font-size:clamp(64px,11vw,128px);
   font-variant-numeric:tabular-nums;
   color:var(--text);
-  text-shadow:0 4px 30px rgba(0,0,0,.6);
+  text-shadow:0 2px 12px rgba(0,0,0,.15);
 }
 .year-anom{
   display:flex;align-items:baseline;justify-content:flex-end;gap:8px;
@@ -198,10 +198,10 @@ body{
   padding:7px 13px;pointer-events:none;
 }
 #loading{top:50%;left:50%;transform:translate(-50%,-50%);
-  background:rgba(0,0,0,.78);color:var(--text);display:none}
+  background:rgba(255,255,255,.9);color:var(--text);display:none}
 #loading.on{display:block}
 #preload{top:16px;left:50%;transform:translateX(-50%);
-  background:rgba(16,18,25,.7);color:var(--dim);backdrop-filter:blur(8px);
+  background:rgba(255,255,255,.85);color:var(--dim);backdrop-filter:blur(8px);
   border:1px solid var(--line);display:none;align-items:center;gap:8px}
 #preload.on{display:flex}
 #preload .spin{width:11px;height:11px;border-radius:50%;
@@ -211,7 +211,7 @@ body{
 
 #err{
   position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:800;
-  background:#5b1717;color:#fecaca;padding:8px 16px;border-radius:8px;
+  background:#fee2e2;color:#991b1b;padding:8px 16px;border-radius:8px;
   font-size:11.5px;max-width:440px;text-align:center;display:none;
 }
 #err.on{display:block}
@@ -220,7 +220,8 @@ body{
 @media (max-width:640px){
   .title-chip{max-width:calc(100vw - 32px)}
   .title-chip p{display:none}
-  .year-big{font-size:clamp(48px,17vw,84px)}
+  .year-block{top:auto;bottom:130px;right:16px;text-align:right}
+  .year-big{font-size:clamp(42px,14vw,72px)}
   .year-anom .au{display:none}
   .readout{display:none}
   .dock{bottom:12px}
