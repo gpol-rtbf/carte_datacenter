@@ -1,490 +1,498 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chaleur du datacenter Google — Saint-Ghislain</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chaleur du datacenter Google — Saint-Ghislain</title>
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/georaster@1.6.0/dist/georaster.browser.bundle.min.js"></script>
-  <script src="https://unpkg.com/georaster-layer-for-leaflet@3.10.0/dist/georaster-layer-for-leaflet.min.js"></script>
-  <script src="https://unpkg.com/chroma-js@2.4.2/chroma.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/georaster@1.6.0/dist/georaster.browser.bundle.min.js"></script>
+<script src="https://unpkg.com/georaster-layer-for-leaflet@3.10.0/dist/georaster-layer-for-leaflet.min.js"></script>
+<script src="https://unpkg.com/chroma-js@2.4.2/chroma.min.js"></script>
 
-    body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: #0d0d0d;
-      color: #e8e8e2;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
+<style>
+:root{
+  --ink:#0a0c11;
+  --panel:rgba(16,18,25,.66);
+  --panel-solid:#12141b;
+  --line:rgba(255,255,255,.09);
+  --line-strong:rgba(255,255,255,.18);
+  --text:#ECEAE3;
+  --dim:#9b9ca6;
+  --mute:#62636c;
+  --hot:#e8593c;
+  --hot-2:#f4a582;
+  --cold:#6aa8e0;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  background:var(--ink);
+  color:var(--text);
+  overflow:hidden;
+}
 
-    header {
-      padding: 14px 24px 12px;
-      border-bottom: 1px solid #222;
-      display: flex;
-      align-items: baseline;
-      gap: 16px;
-      flex-wrap: wrap;
-      flex-shrink: 0;
-    }
-    header h1 {
-      font-size: 15px;
-      font-weight: 600;
-      letter-spacing: -.3px;
-      color: #f0ede6;
-      white-space: nowrap;
-    }
-    header p {
-      font-size: 11px;
-      color: #666;
-      line-height: 1.5;
-    }
+/* ---- Carte plein écran ---- */
+#map{position:absolute;inset:0;background:#0e1015;z-index:1}
+.leaflet-container{background:#0e1015!important;font-family:inherit}
+/* décaler les contrôles de zoom sous le titre */
+.leaflet-top.leaflet-left{margin-top:84px;margin-left:4px}
+.leaflet-control-zoom{border:none!important;box-shadow:0 4px 18px rgba(0,0,0,.4)!important}
+.leaflet-control-zoom a{
+  background:rgba(18,20,27,.82)!important;color:#cfd0d6!important;
+  border:1px solid var(--line)!important;backdrop-filter:blur(8px);
+  width:32px;height:32px;line-height:30px;font-size:17px;
+}
+.leaflet-control-zoom a:first-child{border-radius:9px 9px 0 0!important}
+.leaflet-control-zoom a:last-child{border-radius:0 0 9px 9px!important}
+.leaflet-control-zoom a:hover{background:rgba(40,42,52,.9)!important;color:#fff!important}
+.leaflet-control-attribution{
+  background:rgba(0,0,0,.5)!important;color:#54555d!important;
+  font-size:10px!important;backdrop-filter:blur(4px);border-radius:6px 0 0 0;
+}
+.leaflet-control-attribution a{color:#7b7c85!important}
 
-    main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-    }
+/* ---- Panneaux flottants (verre) ---- */
+.glass{
+  background:var(--panel);
+  backdrop-filter:blur(16px) saturate(1.3);
+  -webkit-backdrop-filter:blur(16px) saturate(1.3);
+  border:1px solid var(--line);
+  box-shadow:0 10px 40px rgba(0,0,0,.45);
+}
+.overlay{position:absolute;z-index:600}
 
-    #map {
-      flex: 1;
-      min-height: 0;
-      position: relative;
-      background: #111;
-    }
+/* Titre, haut-gauche */
+.title-chip{
+  top:16px;left:16px;max-width:360px;
+  padding:12px 16px;border-radius:13px;
+}
+.title-chip .eyebrow{
+  font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--hot-2);font-weight:600;margin-bottom:4px;
+  display:flex;align-items:center;gap:7px;
+}
+.title-chip .eyebrow::before{
+  content:"";width:6px;height:6px;border-radius:50%;
+  background:var(--hot);box-shadow:0 0 8px var(--hot);
+}
+.title-chip h1{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:15px;font-weight:500;letter-spacing:-.01em;line-height:1.25;
+}
+.title-chip p{font-size:11px;color:var(--dim);line-height:1.5;margin-top:6px}
 
-    #loading {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(0,0,0,.82);
-      color: #e8e8e2;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 13px;
-      z-index: 9999;
-      display: none;
-      pointer-events: none;
-    }
-    #loading.visible { display: block; }
+/* Année géante, haut-droite */
+.year-block{
+  top:16px;right:16px;text-align:right;
+  pointer-events:none;
+}
+.year-block .yb-eyebrow{
+  font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--mute);font-weight:600;margin-right:4px;
+}
+.year-big{
+  font-family:'Space Grotesk',sans-serif;
+  font-weight:700;line-height:.86;letter-spacing:-.03em;
+  font-size:clamp(64px,11vw,128px);
+  font-variant-numeric:tabular-nums;
+  color:var(--text);
+  text-shadow:0 4px 30px rgba(0,0,0,.6);
+}
+.year-anom{
+  display:flex;align-items:baseline;justify-content:flex-end;gap:8px;
+  margin-top:2px;
+}
+.year-anom .av{
+  font-family:'Space Grotesk',sans-serif;font-weight:700;
+  font-size:26px;font-variant-numeric:tabular-nums;color:var(--hot-2);
+}
+.year-anom .au{font-size:11px;color:var(--dim);max-width:150px;text-align:right;line-height:1.3}
 
-    #error-banner {
-      position: absolute;
-      top: 12px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #7f1d1d;
-      color: #fecaca;
-      padding: 8px 18px;
-      border-radius: 6px;
-      font-size: 12px;
-      z-index: 9999;
-      display: none;
-      max-width: 480px;
-      text-align: center;
-    }
-    #error-banner.visible { display: block; }
+/* animation changement d'année */
+@media (prefers-reduced-motion: no-preference){
+  .year-big.bump{animation:bump .32s cubic-bezier(.2,.7,.3,1)}
+  @keyframes bump{from{opacity:.2;transform:translateY(8px)}to{opacity:1;transform:none}}
+}
 
-    .controls {
-      background: #111;
-      border-top: 1px solid #1e1e1e;
-      padding: 14px 24px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      flex-shrink: 0;
-    }
+/* ---- Panneau timeline, bas ---- */
+.dock{
+  left:50%;bottom:18px;transform:translateX(-50%);
+  width:min(760px,calc(100vw - 32px));
+  padding:14px 18px 12px;border-radius:16px;
+  display:flex;flex-direction:column;gap:11px;
+}
+.dock-top{display:flex;align-items:center;gap:14px}
 
-    .year-row {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-    .year-label {
-      font-size: 26px;
-      font-weight: 700;
-      color: #f0ede6;
-      min-width: 56px;
-      font-variant-numeric: tabular-nums;
-    }
-    .year-slider-wrap {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-    .tick-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 0 2px;
-    }
-    .tick-row span {
-      font-size: 11px;
-      color: #444;
-      cursor: pointer;
-      transition: color .15s;
-      user-select: none;
-    }
-    .tick-row span:hover { color: #aaa; }
-    .tick-row span.active { color: #e8e8e2; font-weight: 600; }
+.play-btn{
+  flex-shrink:0;width:42px;height:42px;border-radius:50%;
+  background:var(--hot);border:none;cursor:pointer;
+  display:grid;place-items:center;color:#fff;
+  transition:transform .15s,box-shadow .2s,background .2s;
+  box-shadow:0 4px 16px rgba(232,89,60,.4);
+}
+.play-btn:hover{transform:scale(1.06);box-shadow:0 6px 22px rgba(232,89,60,.55)}
+.play-btn:active{transform:scale(.96)}
+.play-btn svg{width:18px;height:18px;display:block}
 
-    input[type=range] {
-      width: 100%;
-      accent-color: #d73027;
-      cursor: pointer;
-    }
+.scrub{flex:1;display:flex;flex-direction:column;gap:7px;min-width:0}
 
-    #btn-play {
-      background: #1a1a1a;
-      border: 1px solid #2e2e2e;
-      color: #e8e8e2;
-      border-radius: 6px;
-      padding: 7px 14px;
-      font-size: 12px;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: background .15s, border-color .15s;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    #btn-play:hover { background: #222; border-color: #444; }
-    #btn-play.playing { border-color: #d73027; color: #f4a582; }
+/* range stylé */
+.scrub input[type=range]{
+  -webkit-appearance:none;appearance:none;
+  width:100%;height:6px;border-radius:99px;cursor:pointer;
+  background:var(--line-strong);outline:none;
+}
+.scrub input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:20px;height:20px;border-radius:50%;
+  background:#fff;border:3px solid var(--hot);
+  box-shadow:0 2px 10px rgba(0,0,0,.5);cursor:pointer;
+  transition:transform .15s;
+}
+.scrub input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.18)}
+.scrub input[type=range]::-moz-range-thumb{
+  width:20px;height:20px;border-radius:50%;
+  background:#fff;border:3px solid var(--hot);cursor:pointer;
+  box-shadow:0 2px 10px rgba(0,0,0,.5);
+}
+.scrub input[type=range]:focus-visible{box-shadow:0 0 0 3px rgba(232,89,60,.35)}
 
-    .legend-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .legend-label {
-      font-size: 11px;
-      color: #555;
-      white-space: nowrap;
-    }
-    .legend-bar {
-      flex: 1;
-      height: 10px;
-      border-radius: 3px;
-      background: linear-gradient(to right,
-        #053061, #2166ac, #4393c3, #92c5de, #d1e5f0,
-        #f7f7f7,
-        #fddbc7, #f4a582, #d6604d, #b2182b, #67001f);
-    }
+.ticks{display:flex;justify-content:space-between;padding:0 1px}
+.ticks button{
+  background:none;border:none;cursor:pointer;padding:2px 3px;
+  font-family:'Space Grotesk',sans-serif;
+  font-size:11px;font-variant-numeric:tabular-nums;
+  color:var(--mute);transition:color .15s,transform .15s;
+}
+.ticks button:hover{color:var(--dim)}
+.ticks button.active{color:var(--text);transform:scale(1.18);font-weight:700}
 
-    .info-row {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .info-card {
-      background: #161616;
-      border: 1px solid #1e1e1e;
-      border-radius: 7px;
-      padding: 8px 14px;
-      min-width: 150px;
-    }
-    .info-card .val {
-      font-size: 20px;
-      font-weight: 700;
-      color: #f4a582;
-      font-variant-numeric: tabular-nums;
-    }
-    .info-card .lbl {
-      font-size: 10px;
-      color: #555;
-      margin-top: 2px;
-      line-height: 1.4;
-    }
+/* légende compacte */
+.dock-legend{display:flex;align-items:center;gap:10px}
+.dock-legend .ll{font-size:10.5px;color:var(--mute);white-space:nowrap}
+.legend-bar{
+  flex:1;height:8px;border-radius:99px;
+  background:linear-gradient(to right,
+    #053061,#2166ac,#4393c3,#92c5de,#d1e5f0,
+    #f7f7f7,#fddbc7,#f4a582,#d6604d,#b2182b,#67001f);
+}
 
-    .leaflet-container { background: #1a1a1a !important; }
-    .leaflet-control-zoom a {
-      background: #1a1a1a !important;
-      color: #ccc !important;
-      border-color: #2e2e2e !important;
-    }
-    .leaflet-control-zoom a:hover { background: #222 !important; }
-    .leaflet-control-attribution {
-      background: rgba(0,0,0,.55) !important;
-      color: #444 !important;
-      font-size: 10px !important;
-    }
-    .leaflet-control-attribution a { color: #666 !important; }
-  </style>
+/* lecture pixel */
+.readout{
+  position:absolute;left:16px;bottom:18px;z-index:600;
+  padding:9px 13px;border-radius:11px;max-width:230px;
+  font-size:11.5px;color:var(--dim);line-height:1.45;
+}
+.readout b{color:var(--text);font-family:'Space Grotesk',sans-serif}
+
+/* indicateurs */
+#loading,#preload{
+  position:absolute;z-index:700;font-size:11px;border-radius:8px;
+  padding:7px 13px;pointer-events:none;
+}
+#loading{top:50%;left:50%;transform:translate(-50%,-50%);
+  background:rgba(0,0,0,.78);color:var(--text);display:none}
+#loading.on{display:block}
+#preload{top:16px;left:50%;transform:translateX(-50%);
+  background:rgba(16,18,25,.7);color:var(--dim);backdrop-filter:blur(8px);
+  border:1px solid var(--line);display:none;align-items:center;gap:8px}
+#preload.on{display:flex}
+#preload .spin{width:11px;height:11px;border-radius:50%;
+  border:2px solid var(--line-strong);border-top-color:var(--hot);
+  animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+#err{
+  position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:800;
+  background:#5b1717;color:#fecaca;padding:8px 16px;border-radius:8px;
+  font-size:11.5px;max-width:440px;text-align:center;display:none;
+}
+#err.on{display:block}
+
+/* responsive */
+@media (max-width:640px){
+  .title-chip{max-width:calc(100vw - 32px)}
+  .title-chip p{display:none}
+  .year-big{font-size:clamp(48px,17vw,84px)}
+  .year-anom .au{display:none}
+  .readout{display:none}
+  .dock{bottom:12px}
+}
+</style>
 </head>
 <body>
 
-<header>
-  <h1>Anomalie thermique — Datacenter Google, Saint-Ghislain</h1>
-  <p>
-    Rouge = plus chaud que la moyenne régionale cette année-là. Bleu = plus froid.
-    Chaque image est normalisée : les couleurs sont comparables d'une année à l'autre.
-    Source : Landsat 8 &amp; 9 · Google Earth Engine.
-  </p>
-</header>
+<div id="map"></div>
 
-<main>
-  <div id="map">
-    <div id="loading">Chargement de l'image satellite…</div>
-    <div id="error-banner"></div>
+<!-- Titre -->
+<div class="overlay title-chip glass">
+  <div class="eyebrow">Saint-Ghislain · Belgique</div>
+  <h1>L'empreinte thermique du datacenter Google</h1>
+  <p>Anomalie de température de surface vue par satellite. Rouge = plus chaud que la moyenne régionale ; bleu = plus froid. Source : Landsat 8 &amp; 9.</p>
+</div>
+
+<!-- Année géante -->
+<div class="overlay year-block">
+  <div><span class="yb-eyebrow">année</span></div>
+  <div class="year-big" id="year-display">2014</div>
+  <div class="year-anom">
+    <span class="av" id="val-dc">—</span>
+    <span class="au">au-dessus de la moyenne régionale, au datacenter</span>
   </div>
+</div>
 
-  <div class="controls">
+<!-- Lecture pixel -->
+<div class="overlay readout glass" id="readout">
+  Cliquez sur la carte pour lire la valeur d'un point.
+</div>
 
-    <div class="year-row">
-      <div class="year-label" id="year-display">2014</div>
-      <div class="year-slider-wrap">
-        <input type="range" id="year-slider" min="0" max="9" value="0" step="1">
-        <div class="tick-row" id="tick-row"></div>
-      </div>
-      <button id="btn-play">
-        <span id="play-icon">▶</span> Animation
-      </button>
+<!-- Dock timeline -->
+<div class="overlay dock glass">
+  <div class="dock-top">
+    <button class="play-btn" id="btn-play" aria-label="Lancer l'animation">
+      <svg id="play-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+    <div class="scrub">
+      <input type="range" id="year-slider" min="0" max="9" step="1" value="0" aria-label="Choisir l'année">
+      <div class="ticks" id="tick-row"></div>
     </div>
-
-    <div class="legend-row">
-      <span class="legend-label">−6 °C (plus froid)</span>
-      <div class="legend-bar"></div>
-      <span class="legend-label">+6 °C (plus chaud)</span>
-    </div>
-
-    <div class="info-row">
-      <div class="info-card">
-        <div class="val" id="val-dc">—</div>
-        <div class="lbl">Anomalie datacenter (°C)<br>vs moyenne régionale</div>
-      </div>
-      <div class="info-card" style="flex:1; min-width:200px">
-        <div class="val" style="font-size:13px; color:#555" id="val-note">
-          Cliquez sur la carte pour lire la valeur d'un pixel
-        </div>
-        <div class="lbl">Valeur au point cliqué</div>
-      </div>
-    </div>
-
   </div>
-</main>
+  <div class="dock-legend">
+    <span class="ll">−6 °C plus froid</span>
+    <div class="legend-bar"></div>
+    <span class="ll">+6 °C plus chaud</span>
+  </div>
+</div>
+
+<div id="loading">Chargement…</div>
+<div id="preload"><span class="spin"></span><span id="preload-txt">Préchargement des années…</span></div>
+<div id="err"></div>
 
 <script>
 // ================================================================
 // CONFIGURATION
 // ================================================================
+const BASE_URL = 'https://gpol-rtbf.github.io/carte_datacenter/cog-converted/';
+const YEARS    = [2014,2015,2016,2017,2018,2019,2020,2021,2022,2023];
 
-// URL de base de votre repo GitHub Pages.
-// Les TIFFs sont dans /cog-converted/ à la racine du repo.
-const BASE_URL  = 'https://gpol-rtbf.github.io/carte_datacenter/cog-converted/';
-const YEARS     = [2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023];
-
-// Anomalie datacenter par année — copiez les valeurs depuis la console GEE
-// (script 10, ligne "data center hotter than area avg by"). Remplacez null.
+// Anomalie datacenter (°C) — remplir depuis la console GEE (script 10)
 const DC_ANOMALY = {
-  2014: null, 2015: null, 2016: null, 2017: null, 2018: null,
-  2019: null, 2020: null, 2021: null, 2022: null, 2023: null,
+  2014:null,2015:null,2016:null,2017:null,2018:null,
+  2019:null,2020:null,2021:null,2022:null,2023:null
 };
 
-const DC_LAT = 50.4727;
-const DC_LON = 3.8674;
+const DC_LAT = 50.4727, DC_LON = 3.8674;
+const LAYER_OPACITY = 0.82;
 
-// ================================================================
-// PALETTE (identique au script GEE)
-// ================================================================
+// Palette pour les TIFFs mono-bande (valeurs brutes). Les TIFFs RGB
+// (issus de .visualize) sont affichés tels quels automatiquement.
 const PALETTE = chroma.scale([
   '#053061','#2166ac','#4393c3','#92c5de','#d1e5f0',
-  '#f7f7f7',
-  '#fddbc7','#f4a582','#d6604d','#b2182b','#67001f'
-]).domain([-6, 6]);
-
-function pixelColor(val, noDataValue) {
-  if (val === noDataValue || val === null || val === undefined || isNaN(val)) return null;
-  const [r, g, b] = PALETTE(Math.max(-6, Math.min(6, val))).rgb();
-  return `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},0.78)`;
-}
+  '#f7f7f7','#fddbc7','#f4a582','#d6604d','#b2182b','#67001f'
+]).domain([-6,6]);
 
 // ================================================================
 // CARTE
 // ================================================================
-const map = L.map('map', { center: [DC_LAT, DC_LON], zoom: 14 });
+const map = L.map('map',{center:[DC_LAT,DC_LON],zoom:14,zoomControl:true});
 
-// Fond de carte OpenStreetMap (fiable depuis GitHub Pages)
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  maxZoom: 19,
+// Fond sombre CARTO. Si rien ne s'affiche, remplacez l'URL par :
+// 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+  attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/">CARTO</a>',
+  subdomains:'abcd',maxZoom:20
 }).addTo(map);
 
+setTimeout(()=>map.invalidateSize(),200);
+window.addEventListener('resize',()=>map.invalidateSize());
+
 // Marqueur datacenter
-const dcIcon = L.divIcon({
-  className: '',
-  html: `<div style="width:12px;height:12px;background:#00e5ff;border:2px solid #fff;border-radius:50%;box-shadow:0 0 8px rgba(0,229,255,.6)"></div>`,
-  iconAnchor: [6, 6],
-});
-L.marker([DC_LAT, DC_LON], { icon: dcIcon })
-  .addTo(map)
-  .bindPopup('<b>Datacenter Google</b><br>Saint-Ghislain, Belgique');
+L.marker([DC_LAT,DC_LON],{icon:L.divIcon({className:'',
+  html:'<div style="width:13px;height:13px;background:#00e5ff;border:2px solid #fff;border-radius:50%;box-shadow:0 0 10px rgba(0,229,255,.7)"></div>',
+  iconAnchor:[6,6]})})
+  .addTo(map).bindPopup('<b>Datacenter Google</b><br>Saint-Ghislain');
+
+// ================================================================
+// ÉLÉMENTS UI
+// ================================================================
+const loadingEl=document.getElementById('loading');
+const preloadEl=document.getElementById('preload');
+const preloadTxt=document.getElementById('preload-txt');
+const errEl=document.getElementById('err');
+const yearDisplay=document.getElementById('year-display');
+const valDC=document.getElementById('val-dc');
+const readoutEl=document.getElementById('readout');
+
+function showErr(m){errEl.textContent='⚠ '+m;errEl.classList.add('on');
+  setTimeout(()=>errEl.classList.remove('on'),6000);}
 
 // ================================================================
 // CHARGEMENT DES COUCHES
 // ================================================================
-let currentLayer = null;
-let cache = {};
+const cache={};            // year -> {layer, georaster, bands}
+let currentLayer=null, currentInfo=null;
 
-const loadingEl   = document.getElementById('loading');
-const errorBanner = document.getElementById('error-banner');
-const yearDisplay = document.getElementById('year-display');
-const valDC       = document.getElementById('val-dc');
-const valNote     = document.getElementById('val-note');
-
-function showError(msg) {
-  errorBanner.textContent = msg;
-  errorBanner.classList.add('visible');
-  setTimeout(() => errorBanner.classList.remove('visible'), 6000);
+function colorFn(georaster,bands){
+  const nd=georaster.noDataValue;
+  if(bands>=3){
+    return v=>{
+      const r=v[0],g=v[1],b=v[2];
+      if(r==null||isNaN(r)||r===nd) return null;
+      if(r+g+b<14) return null;            // noir/masqué/frange
+      return `rgba(${r|0},${g|0},${b|0},${LAYER_OPACITY})`;
+    };
+  }
+  return v=>{
+    const x=v[0];
+    if(x==null||isNaN(x)||x===nd) return null;
+    const c=PALETTE(Math.max(-6,Math.min(6,x))).rgb();
+    return `rgba(${c[0]|0},${c[1]|0},${c[2]|0},${LAYER_OPACITY})`;
+  };
 }
 
-async function showYear(year) {
-  loadingEl.classList.add('visible');
-  yearDisplay.textContent = year;
+async function loadLayer(year){
+  if(cache[year]) return cache[year];
+  const url=BASE_URL+'anomaly_frame_'+year+'_cog.tif';
+  const resp=await fetch(url);
+  if(!resp.ok) throw new Error('HTTP '+resp.status+' · '+year);
+  const buf=await resp.arrayBuffer();
+  const georaster=await parseGeoraster(buf);
+  const bands=georaster.numberOfRasters||1;
+  const layer=new GeoRasterLayer({
+    georaster,opacity:1,resolution:256,
+    pixelValuesToColorFn:colorFn(georaster,bands)
+  });
+  cache[year]={layer,georaster,bands};
+  return cache[year];
+}
 
-  // Info anomalie datacenter
-  const anom = DC_ANOMALY[year];
-  valDC.textContent = anom !== null && anom !== undefined
-    ? (anom > 0 ? '+' : '') + Number(anom).toFixed(1) + ' °C'
-    : '—';
+function bumpYear(){
+  yearDisplay.classList.remove('bump');
+  void yearDisplay.offsetWidth;       // reflow pour relancer l'anim
+  yearDisplay.classList.add('bump');
+}
 
-  // Retirer l'ancienne couche
-  if (currentLayer) { map.removeLayer(currentLayer); currentLayer = null; }
+async function showYear(year){
+  yearDisplay.textContent=year;
+  bumpYear();
+  const a=DC_ANOMALY[year];
+  valDC.textContent=(a!==null&&a!==undefined)?((a>0?'+':'')+Number(a).toFixed(1)+'°'):'—';
 
-  // Depuis le cache si dispo
-  if (cache[year]) {
-    currentLayer = cache[year];
-    currentLayer.addTo(map);
-    loadingEl.classList.remove('visible');
-    return;
+  if(currentLayer){map.removeLayer(currentLayer);currentLayer=null;}
+
+  let info=cache[year];
+  if(!info){
+    loadingEl.classList.add('on');
+    try{info=await loadLayer(year);}
+    catch(e){console.error(e);showErr('Impossible de charger '+year);loadingEl.classList.remove('on');return;}
+    loadingEl.classList.remove('on');
   }
+  currentInfo=info;
+  currentLayer=info.layer;
+  currentLayer.addTo(map);
+}
 
-  const url = BASE_URL + 'anomaly_frame_' + year + '_cog.tif';
-
-  try {
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status} — fichier introuvable : ${url}`);
-
-    const buffer   = await resp.arrayBuffer();
-    const georaster = await parseGeoraster(buffer);
-
-    const layer = new GeoRasterLayer({
-      georaster,
-      opacity: 0.8,
-      pixelValuesToColorFn: values => pixelColor(values[0], georaster.noDataValue),
-      resolution: 256,
-      projectionFunc: (x, y) => [x, y],
-    });
-
-    // Stocker le georaster sur la couche pour le clic
-    layer._georaster = georaster;
-
-    cache[year] = layer;
-    currentLayer = layer;
-    layer.addTo(map);
-
-  } catch (err) {
-    console.error('Erreur chargement TIFF :', err);
-    showError('⚠ Impossible de charger ' + year + ' — ' + err.message);
-    valNote.textContent = 'Erreur de chargement (voir console)';
+// préchargement de toutes les années (défilement instantané)
+async function preloadAll(){
+  preloadEl.classList.add('on');
+  let done=0;
+  for(const y of YEARS){
+    try{await loadLayer(y);}catch(e){}
+    done++;
+    preloadTxt.textContent='Préchargement '+done+'/'+YEARS.length;
   }
-
-  loadingEl.classList.remove('visible');
+  preloadEl.classList.remove('on');
 }
 
 // ================================================================
 // SLIDER + TICKS
 // ================================================================
-const slider  = document.getElementById('year-slider');
-const tickRow = document.getElementById('tick-row');
-slider.max = YEARS.length - 1;
+const slider=document.getElementById('year-slider');
+const tickRow=document.getElementById('tick-row');
+slider.max=YEARS.length-1;
 
-YEARS.forEach((y, i) => {
-  const span = document.createElement('span');
-  span.textContent = y;
-  span.addEventListener('click', () => {
-    slider.value = i;
-    updateTicks(i);
-    showYear(y);
-  });
-  tickRow.appendChild(span);
+YEARS.forEach((y,i)=>{
+  const b=document.createElement('button');
+  b.textContent="’"+String(y).slice(2);   // ’14, ’15…
+  b.title=y;
+  b.addEventListener('click',()=>{slider.value=i;updateFill();updateTicks(i);showYear(y);});
+  tickRow.appendChild(b);
 });
 
-function updateTicks(idx) {
-  tickRow.querySelectorAll('span').forEach((s, i) =>
-    s.classList.toggle('active', i === idx));
+function updateTicks(i){
+  [...tickRow.children].forEach((s,j)=>s.classList.toggle('active',j===i));
 }
-
-slider.addEventListener('input', () => {
-  const i = parseInt(slider.value);
-  updateTicks(i);
-  showYear(YEARS[i]);
+function updateFill(){
+  const pct=(slider.value/(YEARS.length-1))*100;
+  slider.style.background=
+    `linear-gradient(to right,var(--hot) 0%,var(--hot) ${pct}%,var(--line-strong) ${pct}%,var(--line-strong) 100%)`;
+}
+slider.addEventListener('input',()=>{
+  const i=parseInt(slider.value);
+  updateFill();updateTicks(i);showYear(YEARS[i]);
 });
 
 // ================================================================
 // ANIMATION
 // ================================================================
-let timer = null;
-const btnPlay  = document.getElementById('btn-play');
-const playIcon = document.getElementById('play-icon');
+let timer=null;
+const btnPlay=document.getElementById('btn-play');
+const playIcon=document.getElementById('play-icon');
+const ICON_PLAY='<path d="M8 5v14l11-7z"/>';
+const ICON_PAUSE='<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>';
 
-btnPlay.addEventListener('click', () => {
-  if (timer) {
-    clearInterval(timer);
-    timer = null;
-    playIcon.textContent = '▶';
-    btnPlay.classList.remove('playing');
-  } else {
-    playIcon.textContent = '⏸';
-    btnPlay.classList.add('playing');
-    timer = setInterval(() => {
-      const next = (parseInt(slider.value) + 1) % YEARS.length;
-      slider.value = next;
-      updateTicks(next);
-      showYear(YEARS[next]);
-    }, 2200);
+btnPlay.addEventListener('click',()=>{
+  if(timer){
+    clearInterval(timer);timer=null;
+    playIcon.innerHTML=ICON_PLAY;btnPlay.setAttribute('aria-label',"Lancer l'animation");
+  }else{
+    playIcon.innerHTML=ICON_PAUSE;btnPlay.setAttribute('aria-label',"Arrêter l'animation");
+    timer=setInterval(()=>{
+      const n=(parseInt(slider.value)+1)%YEARS.length;
+      slider.value=n;updateFill();updateTicks(n);showYear(YEARS[n]);
+    },1800);
   }
 });
 
 // ================================================================
-// CLIC → valeur du pixel
+// CLIC → lecture du pixel
 // ================================================================
-map.on('click', e => {
-  if (!currentLayer || !currentLayer._georaster) return;
-  const gr  = currentLayer._georaster;
-  const lat = e.latlng.lat;
-  const lon = e.latlng.lng;
-
-  if (lon < gr.xmin || lon > gr.xmax || lat < gr.ymin || lat > gr.ymax) {
-    valNote.textContent = 'Clic en dehors de la zone couverte';
-    return;
+map.on('click',e=>{
+  if(!currentInfo){return;}
+  const gr=currentInfo.georaster, bands=currentInfo.bands;
+  const lat=e.latlng.lat, lon=e.latlng.lng;
+  if(lon<gr.xmin||lon>gr.xmax||lat<gr.ymin||lat>gr.ymax){
+    readoutEl.innerHTML='Point hors de la zone couverte.';return;
   }
+  const col=Math.floor((lon-gr.xmin)/gr.pixelWidth);
+  const row=Math.floor((gr.ymax-lat)/gr.pixelHeight);
+  const v=gr.values[0][row]?.[col];
+  const pos=lat.toFixed(4)+', '+lon.toFixed(4);
 
-  const col = Math.floor((lon - gr.xmin) / gr.pixelWidth);
-  const row = Math.floor((gr.ymax - lat) / gr.pixelHeight);
-  const val = gr.values[0][row]?.[col];
-
-  if (val === undefined || val === gr.noDataValue || isNaN(val)) {
-    valNote.textContent = 'Pas de donnée à cet endroit (nuages ou hors zone)';
-  } else {
-    const sign = val > 0 ? '+' : '';
-    valNote.textContent = sign + val.toFixed(2) + ' °C vs moyenne régionale · ' +
-      lat.toFixed(4) + ', ' + lon.toFixed(4);
+  if(bands>=3){
+    readoutEl.innerHTML='<b>'+pos+'</b><br>Couleur lue depuis l\'image. Pour lire les °C exacts par pixel, un réexport en valeurs brutes est nécessaire.';
+  }else{
+    if(v===undefined||v===gr.noDataValue||isNaN(v)){
+      readoutEl.innerHTML='Pas de donnée ici (nuages ou hors zone).';
+    }else{
+      const s=v>0?'+':'';
+      readoutEl.innerHTML='<b>'+s+v.toFixed(2)+' °C</b> vs moyenne régionale<br>'+pos;
+    }
   }
 });
 
 // ================================================================
 // DÉMARRAGE
 // ================================================================
-updateTicks(0);
-showYear(YEARS[0]);
+updateFill();updateTicks(0);
+showYear(YEARS[0]).then(preloadAll);
 </script>
 </body>
 </html>
