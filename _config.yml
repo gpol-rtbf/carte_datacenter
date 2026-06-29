@@ -1,0 +1,8 @@
+# Ce fichier dit à GitHub Pages de ne pas ignorer les fichiers .tif
+# et de les servir tels quels sans les traiter comme du Jekyll.
+include:
+  - "*.tif"
+  - "cog-converted"
+
+# Désactiver le traitement Jekyll pour tous les fichiers
+plugins: []

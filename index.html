@@ -5,91 +5,121 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chaleur du datacenter Google — Saint-Ghislain</title>
 
-  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <!-- GeoRaster Leaflet (lit les COG directement) -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/georaster@1.6.0/dist/georaster.browser.bundle.min.js"></script>
   <script src="https://unpkg.com/georaster-layer-for-leaflet@3.10.0/dist/georaster-layer-for-leaflet.min.js"></script>
   <script src="https://unpkg.com/chroma-js@2.4.2/chroma.min.js"></script>
 
   <style>
-    /* ── Reset & base ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
       background: #0d0d0d;
       color: #e8e8e2;
-      min-height: 100vh;
+      height: 100vh;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
 
-    /* ── En-tête ── */
     header {
-      padding: 18px 28px 14px;
+      padding: 14px 24px 12px;
       border-bottom: 1px solid #222;
       display: flex;
       align-items: baseline;
-      gap: 18px;
+      gap: 16px;
       flex-wrap: wrap;
+      flex-shrink: 0;
     }
     header h1 {
-      font-size: 17px;
+      font-size: 15px;
       font-weight: 600;
       letter-spacing: -.3px;
       color: #f0ede6;
+      white-space: nowrap;
     }
     header p {
-      font-size: 12px;
-      color: #888;
-      max-width: 560px;
+      font-size: 11px;
+      color: #666;
       line-height: 1.5;
     }
 
-    /* ── Contenu principal ── */
     main {
       flex: 1;
       display: flex;
       flex-direction: column;
+      min-height: 0;
     }
 
-    /* ── Carte ── */
     #map {
       flex: 1;
-      min-height: 520px;
+      min-height: 0;
+      position: relative;
       background: #111;
     }
 
-    /* ── Panneau bas ── */
+    #loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,.82);
+      color: #e8e8e2;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      z-index: 9999;
+      display: none;
+      pointer-events: none;
+    }
+    #loading.visible { display: block; }
+
+    #error-banner {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #7f1d1d;
+      color: #fecaca;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-size: 12px;
+      z-index: 9999;
+      display: none;
+      max-width: 480px;
+      text-align: center;
+    }
+    #error-banner.visible { display: block; }
+
     .controls {
       background: #111;
-      border-top: 1px solid #222;
-      padding: 18px 28px 20px;
+      border-top: 1px solid #1e1e1e;
+      padding: 14px 24px 16px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 10px;
+      flex-shrink: 0;
     }
 
-    /* Slider années */
     .year-row {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 14px;
     }
     .year-label {
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 700;
       color: #f0ede6;
-      min-width: 60px;
+      min-width: 56px;
       font-variant-numeric: tabular-nums;
     }
     .year-slider-wrap {
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
     }
     .tick-row {
       display: flex;
@@ -98,53 +128,50 @@
     }
     .tick-row span {
       font-size: 11px;
-      color: #555;
+      color: #444;
       cursor: pointer;
       transition: color .15s;
       user-select: none;
     }
-    .tick-row span:hover,
-    .tick-row span.active { color: #e8e8e2; }
+    .tick-row span:hover { color: #aaa; }
+    .tick-row span.active { color: #e8e8e2; font-weight: 600; }
 
     input[type=range] {
       width: 100%;
       accent-color: #d73027;
       cursor: pointer;
-      height: 4px;
     }
 
-    /* Bouton play */
     #btn-play {
       background: #1a1a1a;
-      border: 1px solid #333;
+      border: 1px solid #2e2e2e;
       color: #e8e8e2;
       border-radius: 6px;
-      padding: 8px 16px;
-      font-size: 13px;
+      padding: 7px 14px;
+      font-size: 12px;
       cursor: pointer;
       white-space: nowrap;
       transition: background .15s, border-color .15s;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
     }
-    #btn-play:hover { background: #252525; border-color: #555; }
-    #btn-play.playing { border-color: #d73027; color: #d73027; }
+    #btn-play:hover { background: #222; border-color: #444; }
+    #btn-play.playing { border-color: #d73027; color: #f4a582; }
 
-    /* ── Légende couleur ── */
     .legend-row {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
     .legend-label {
       font-size: 11px;
-      color: #666;
+      color: #555;
       white-space: nowrap;
     }
     .legend-bar {
       flex: 1;
-      height: 12px;
+      height: 10px;
       border-radius: 3px;
       background: linear-gradient(to right,
         #053061, #2166ac, #4393c3, #92c5de, #d1e5f0,
@@ -152,63 +179,44 @@
         #fddbc7, #f4a582, #d6604d, #b2182b, #67001f);
     }
 
-    /* ── Info datacenter ── */
     .info-row {
       display: flex;
-      gap: 24px;
+      gap: 12px;
       flex-wrap: wrap;
     }
     .info-card {
-      background: #171717;
-      border: 1px solid #222;
-      border-radius: 8px;
-      padding: 10px 16px;
-      min-width: 160px;
+      background: #161616;
+      border: 1px solid #1e1e1e;
+      border-radius: 7px;
+      padding: 8px 14px;
+      min-width: 150px;
     }
     .info-card .val {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 700;
       color: #f4a582;
       font-variant-numeric: tabular-nums;
     }
     .info-card .lbl {
-      font-size: 11px;
-      color: #666;
+      font-size: 10px;
+      color: #555;
       margin-top: 2px;
       line-height: 1.4;
     }
 
-    /* ── Indicateur de chargement ── */
-    #loading {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(0,0,0,.75);
-      color: #e8e8e2;
-      padding: 12px 22px;
-      border-radius: 8px;
-      font-size: 13px;
-      pointer-events: none;
-      z-index: 9999;
-      display: none;
-    }
-    #loading.visible { display: block; }
-
-    /* ── Leaflet overrides ── */
-    .leaflet-container { background: #1a1a1a; }
+    .leaflet-container { background: #1a1a1a !important; }
     .leaflet-control-zoom a {
       background: #1a1a1a !important;
-      color: #e8e8e2 !important;
-      border-color: #333 !important;
+      color: #ccc !important;
+      border-color: #2e2e2e !important;
     }
-    .leaflet-control-zoom a:hover { background: #252525 !important; }
+    .leaflet-control-zoom a:hover { background: #222 !important; }
     .leaflet-control-attribution {
-      background: rgba(0,0,0,.6) !important;
-      color: #555 !important;
+      background: rgba(0,0,0,.55) !important;
+      color: #444 !important;
       font-size: 10px !important;
     }
-    .leaflet-control-attribution a { color: #777 !important; }
+    .leaflet-control-attribution a { color: #666 !important; }
   </style>
 </head>
 <body>
@@ -216,50 +224,44 @@
 <header>
   <h1>Anomalie thermique — Datacenter Google, Saint-Ghislain</h1>
   <p>
-    Chaque image montre à quel point chaque surface est plus chaude ou plus froide
-    que la moyenne régionale de cette année-là. Rouge = plus chaud que l'environnement.
-    Source : Landsat 8 &amp; 9, traitement Google Earth Engine.
+    Rouge = plus chaud que la moyenne régionale cette année-là. Bleu = plus froid.
+    Chaque image est normalisée : les couleurs sont comparables d'une année à l'autre.
+    Source : Landsat 8 &amp; 9 · Google Earth Engine.
   </p>
 </header>
 
 <main>
   <div id="map">
-    <div id="loading">Chargement…</div>
+    <div id="loading">Chargement de l'image satellite…</div>
+    <div id="error-banner"></div>
   </div>
 
   <div class="controls">
 
-    <!-- Année + slider -->
     <div class="year-row">
       <div class="year-label" id="year-display">2014</div>
       <div class="year-slider-wrap">
         <input type="range" id="year-slider" min="0" max="9" value="0" step="1">
         <div class="tick-row" id="tick-row"></div>
       </div>
-      <button id="btn-play" title="Lancer/arrêter l'animation">
+      <button id="btn-play">
         <span id="play-icon">▶</span> Animation
       </button>
     </div>
 
-    <!-- Légende -->
     <div class="legend-row">
-      <span class="legend-label">Plus froid −6 °C</span>
+      <span class="legend-label">−6 °C (plus froid)</span>
       <div class="legend-bar"></div>
-      <span class="legend-label">+6 °C Plus chaud</span>
+      <span class="legend-label">+6 °C (plus chaud)</span>
     </div>
 
-    <!-- Cartes info -->
     <div class="info-row">
       <div class="info-card">
         <div class="val" id="val-dc">—</div>
         <div class="lbl">Anomalie datacenter (°C)<br>vs moyenne régionale</div>
       </div>
-      <div class="info-card">
-        <div class="val" id="val-scenes">—</div>
-        <div class="lbl">Scènes Landsat<br>utilisées pour cette année</div>
-      </div>
-      <div class="info-card" style="flex:1; min-width:220px">
-        <div class="val" style="font-size:14px; color:#888" id="val-note">
+      <div class="info-card" style="flex:1; min-width:200px">
+        <div class="val" style="font-size:13px; color:#555" id="val-note">
           Cliquez sur la carte pour lire la valeur d'un pixel
         </div>
         <div class="lbl">Valeur au point cliqué</div>
@@ -271,31 +273,26 @@
 
 <script>
 // ================================================================
-// CONFIGURATION — adaptez ici si nécessaire
+// CONFIGURATION
 // ================================================================
 
-// Dossier où se trouvent vos COG (chemin relatif depuis index.html)
-// Si index.html est dans C:\...\carte\ et les COG dans C:\...\cog-converted\
-// mettez : '../cog-converted/'
-const COG_FOLDER = '../cog-converted/';
+// URL de base de votre repo GitHub Pages.
+// Les TIFFs sont dans /cog-converted/ à la racine du repo.
+const BASE_URL  = 'https://gpol-rtbf.github.io/carte_datacenter/cog-converted/';
+const YEARS     = [2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023];
 
-// Nom de vos fichiers (sans extension)
-// Format attendu : anomaly_frame_2014_cog.tif, etc.
-const YEARS = [2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023];
-
-// Anomalie datacenter par année (°C) — copiez les valeurs de la console GEE
-// Remplacez null par la vraie valeur quand vous l'avez
+// Anomalie datacenter par année — copiez les valeurs depuis la console GEE
+// (script 10, ligne "data center hotter than area avg by"). Remplacez null.
 const DC_ANOMALY = {
   2014: null, 2015: null, 2016: null, 2017: null, 2018: null,
   2019: null, 2020: null, 2021: null, 2022: null, 2023: null,
 };
 
-// Coordonnées du datacenter [lat, lon]
-const DC_LAT  = 50.4727;
-const DC_LON  = 3.8674;
+const DC_LAT = 50.4727;
+const DC_LON = 3.8674;
 
 // ================================================================
-// PALETTE — même que GEE script 10
+// PALETTE (identique au script GEE)
 // ================================================================
 const PALETTE = chroma.scale([
   '#053061','#2166ac','#4393c3','#92c5de','#d1e5f0',
@@ -303,201 +300,186 @@ const PALETTE = chroma.scale([
   '#fddbc7','#f4a582','#d6604d','#b2182b','#67001f'
 ]).domain([-6, 6]);
 
-function getColor(val) {
-  if (val === null || isNaN(val)) return [0, 0, 0, 0]; // transparent
-  const c = PALETTE(val).rgb();
-  return [c[0], c[1], c[2], 200]; // légère transparence
+function pixelColor(val, noDataValue) {
+  if (val === noDataValue || val === null || val === undefined || isNaN(val)) return null;
+  const [r, g, b] = PALETTE(Math.max(-6, Math.min(6, val))).rgb();
+  return `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},0.78)`;
 }
 
 // ================================================================
-// CARTE LEAFLET
+// CARTE
 // ================================================================
-const map = L.map('map', {
-  center: [DC_LAT, DC_LON],
-  zoom: 14,
-  zoomControl: true,
-});
+const map = L.map('map', { center: [DC_LAT, DC_LON], zoom: 14 });
 
-// Fond de carte sombre (OpenStreetMap)
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_matter/{z}/{x}/{y}{r}.png', {
-  attribution: '© OpenStreetMap, © CartoDB',
+  attribution: '© <a href="https://www.openstreetmap.org/">OpenStreetMap</a>, © <a href="https://carto.com/">CartoDB</a>',
   maxZoom: 19,
 }).addTo(map);
 
 // Marqueur datacenter
 const dcIcon = L.divIcon({
   className: '',
-  html: `<div style="
-    width:14px;height:14px;
-    background:#00e5ff;
-    border:2px solid #fff;
-    border-radius:50%;
-    box-shadow:0 0 6px #00e5ff;
-  "></div>`,
-  iconAnchor: [7, 7],
+  html: `<div style="width:12px;height:12px;background:#00e5ff;border:2px solid #fff;border-radius:50%;box-shadow:0 0 8px rgba(0,229,255,.6)"></div>`,
+  iconAnchor: [6, 6],
 });
 L.marker([DC_LAT, DC_LON], { icon: dcIcon })
   .addTo(map)
   .bindPopup('<b>Datacenter Google</b><br>Saint-Ghislain, Belgique');
 
 // ================================================================
-// GESTION DES COUCHES
+// CHARGEMENT DES COUCHES
 // ================================================================
 let currentLayer = null;
-let loadedLayers  = {};   // cache : on ne re-télécharge pas les couches déjà chargées
-let currentYear   = YEARS[0];
+let cache = {};
 
-const loadingEl  = document.getElementById('loading');
+const loadingEl   = document.getElementById('loading');
+const errorBanner = document.getElementById('error-banner');
 const yearDisplay = document.getElementById('year-display');
-const valDC      = document.getElementById('val-dc');
-const valScenes  = document.getElementById('val-scenes');
-const valNote    = document.getElementById('val-note');
+const valDC       = document.getElementById('val-dc');
+const valNote     = document.getElementById('val-note');
+
+function showError(msg) {
+  errorBanner.textContent = msg;
+  errorBanner.classList.add('visible');
+  setTimeout(() => errorBanner.classList.remove('visible'), 6000);
+}
 
 async function showYear(year) {
   loadingEl.classList.add('visible');
   yearDisplay.textContent = year;
-  currentYear = year;
 
-  // Mettre à jour la carte info
+  // Info anomalie datacenter
   const anom = DC_ANOMALY[year];
-  valDC.textContent = anom !== null ? (anom > 0 ? '+' : '') + anom.toFixed(1) + ' °C' : '—';
-  valScenes.textContent = '—'; // vous pouvez remplir manuellement
+  valDC.textContent = anom !== null && anom !== undefined
+    ? (anom > 0 ? '+' : '') + Number(anom).toFixed(1) + ' °C'
+    : '—';
 
-  // Cacher l'ancienne couche
-  if (currentLayer) {
-    map.removeLayer(currentLayer);
-    currentLayer = null;
-  }
+  // Retirer l'ancienne couche
+  if (currentLayer) { map.removeLayer(currentLayer); currentLayer = null; }
 
-  // Si déjà en cache, afficher directement
-  if (loadedLayers[year]) {
-    currentLayer = loadedLayers[year];
+  // Depuis le cache si dispo
+  if (cache[year]) {
+    currentLayer = cache[year];
     currentLayer.addTo(map);
     loadingEl.classList.remove('visible');
     return;
   }
 
-  // Sinon, charger le COG
-  const url = COG_FOLDER + 'anomaly_frame_' + year + '_cog.tif';
+  const url = BASE_URL + 'anomaly_frame_' + year + '_cog.tif';
 
   try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Fichier introuvable : ' + url);
-    const arrayBuffer = await response.arrayBuffer();
-    const georaster = await parseGeoraster(arrayBuffer);
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status} — fichier introuvable : ${url}`);
+
+    const buffer   = await resp.arrayBuffer();
+    const georaster = await parseGeoraster(buffer);
 
     const layer = new GeoRasterLayer({
       georaster,
-      opacity: 0.75,
-      pixelValuesToColorFn: values => {
-        const v = values[0];
-        if (v === georaster.noDataValue || v === null || isNaN(v)) return null;
-        const rgba = getColor(v);
-        return `rgba(${rgba[0]},${rgba[1]},${rgba[2]},${rgba[3]/255})`;
-      },
+      opacity: 1,
+      pixelValuesToColorFn: values => pixelColor(values[0], georaster.noDataValue),
       resolution: 256,
     });
 
-    loadedLayers[year] = layer;
+    // Stocker le georaster sur la couche pour le clic
+    layer._georaster = georaster;
+
+    cache[year] = layer;
     currentLayer = layer;
     layer.addTo(map);
 
   } catch (err) {
-    console.error(err);
-    valNote.textContent = '⚠ ' + err.message;
+    console.error('Erreur chargement TIFF :', err);
+    showError('⚠ Impossible de charger ' + year + ' — ' + err.message);
+    valNote.textContent = 'Erreur de chargement (voir console)';
   }
 
   loadingEl.classList.remove('visible');
 }
 
 // ================================================================
-// SLIDER
+// SLIDER + TICKS
 // ================================================================
-const slider = document.getElementById('year-slider');
+const slider  = document.getElementById('year-slider');
+const tickRow = document.getElementById('tick-row');
 slider.max = YEARS.length - 1;
 
-// Générer les étiquettes d'années sous le slider
-const tickRow = document.getElementById('tick-row');
 YEARS.forEach((y, i) => {
   const span = document.createElement('span');
   span.textContent = y;
-  span.dataset.idx = i;
   span.addEventListener('click', () => {
     slider.value = i;
-    slider.dispatchEvent(new Event('input'));
+    updateTicks(i);
+    showYear(y);
   });
   tickRow.appendChild(span);
 });
 
 function updateTicks(idx) {
-  tickRow.querySelectorAll('span').forEach((s, i) => {
-    s.classList.toggle('active', i === idx);
-  });
+  tickRow.querySelectorAll('span').forEach((s, i) =>
+    s.classList.toggle('active', i === idx));
 }
 
 slider.addEventListener('input', () => {
-  const idx = parseInt(slider.value);
-  updateTicks(idx);
-  showYear(YEARS[idx]);
+  const i = parseInt(slider.value);
+  updateTicks(i);
+  showYear(YEARS[i]);
 });
 
 // ================================================================
 // ANIMATION
 // ================================================================
-let playInterval = null;
+let timer = null;
 const btnPlay  = document.getElementById('btn-play');
 const playIcon = document.getElementById('play-icon');
 
 btnPlay.addEventListener('click', () => {
-  if (playInterval) {
-    clearInterval(playInterval);
-    playInterval = null;
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
     playIcon.textContent = '▶';
     btnPlay.classList.remove('playing');
   } else {
     playIcon.textContent = '⏸';
     btnPlay.classList.add('playing');
-    playInterval = setInterval(() => {
-      let next = parseInt(slider.value) + 1;
-      if (next >= YEARS.length) next = 0;
+    timer = setInterval(() => {
+      const next = (parseInt(slider.value) + 1) % YEARS.length;
       slider.value = next;
       updateTicks(next);
       showYear(YEARS[next]);
-    }, 2000); // 2 secondes par frame — ajustez à votre goût
+    }, 2200);
   }
 });
 
 // ================================================================
-// CLIC SUR LA CARTE → lire la valeur du pixel
+// CLIC → valeur du pixel
 // ================================================================
-map.on('click', async (e) => {
-  if (!currentLayer) return;
-  const georaster = currentLayer.options.georaster;
+map.on('click', e => {
+  if (!currentLayer || !currentLayer._georaster) return;
+  const gr  = currentLayer._georaster;
   const lat = e.latlng.lat;
   const lon = e.latlng.lng;
 
-  // Vérifier que le point est dans l'étendue du raster
-  const { xmin, xmax, ymin, ymax } = georaster;
-  if (lon < xmin || lon > xmax || lat < ymin || lat > ymax) {
-    valNote.textContent = 'Clic en dehors de la zone de données';
+  if (lon < gr.xmin || lon > gr.xmax || lat < gr.ymin || lat > gr.ymax) {
+    valNote.textContent = 'Clic en dehors de la zone couverte';
     return;
   }
 
-  // Calculer le pixel
-  const col = Math.floor((lon - xmin) / georaster.pixelWidth);
-  const row = Math.floor((ymax - lat) / georaster.pixelHeight);
-  const val = georaster.values[0][row]?.[col];
+  const col = Math.floor((lon - gr.xmin) / gr.pixelWidth);
+  const row = Math.floor((gr.ymax - lat) / gr.pixelHeight);
+  const val = gr.values[0][row]?.[col];
 
-  if (val === undefined || val === georaster.noDataValue || isNaN(val)) {
-    valNote.textContent = 'Pas de donnée à cet endroit';
+  if (val === undefined || val === gr.noDataValue || isNaN(val)) {
+    valNote.textContent = 'Pas de donnée à cet endroit (nuages ou hors zone)';
   } else {
     const sign = val > 0 ? '+' : '';
-    valNote.textContent = sign + val.toFixed(2) + ' °C vs moyenne régionale';
+    valNote.textContent = sign + val.toFixed(2) + ' °C vs moyenne régionale · ' +
+      lat.toFixed(4) + ', ' + lon.toFixed(4);
   }
 });
 
 // ================================================================
-// INIT — charger la première année
+// DÉMARRAGE
 // ================================================================
 updateTicks(0);
 showYear(YEARS[0]);
