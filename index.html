@@ -305,8 +305,8 @@ const map = L.map('map',{center:[DC_LAT,DC_LON],zoom:14,zoomControl:true});
 
 // Fond sombre CARTO. Si rien ne s'affiche, remplacez l'URL par :
 // 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_matter/{z}/{x}/{y}{r}.png',{
-  attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/">CARTO</a>',
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   subdomains:'abcd',maxZoom:20
 }).addTo(map);
 
