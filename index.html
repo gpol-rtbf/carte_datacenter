@@ -16,6 +16,9 @@
 <script src="https://unpkg.com/chroma-js@2.4.2/chroma.min.js"></script>
 
 <style>
+.leaflet-tile {
+  transition: none !important;
+}
 :root{
   --ink:#f0f2f5;
   --panel:rgba(255,255,255,.82);
@@ -369,6 +372,7 @@ async function loadLayer(year){
   const layer=new GeoRasterLayer({
     georaster,opacity:1,resolution:256,
     pixelValuesToColorFn:colorFn(georaster,bands)
+    transition: false
   });
   cache[year]={layer,georaster,bands};
   return cache[year];
