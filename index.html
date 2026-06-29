@@ -305,7 +305,7 @@ const map = L.map('map',{center:[DC_LAT,DC_LON],zoom:14,zoomControl:true});
 
 // Fond sombre CARTO. Si rien ne s'affiche, remplacez l'URL par :
 // 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_matter/{z}/{x}/{y}{r}.png',{
   attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/">CARTO</a>',
   subdomains:'abcd',maxZoom:20
 }).addTo(map);
@@ -468,11 +468,17 @@ map.on('click',e=>{
   if(!currentInfo){return;}
   const gr=currentInfo.georaster, bands=currentInfo.bands;
   const lat=e.latlng.lat, lon=e.latlng.lng;
-  if(lon<gr.xmin||lon>gr.xmax||lat<gr.ymin||lat>gr.ymax){
+
+  // Convertir lat/lon en mètres Web Mercator (EPSG:3857)
+  const R=6378137;
+  const mx=lon*(Math.PI/180)*R;
+  const my=Math.log(Math.tan((90+lat)*(Math.PI/360)))*R;
+
+  if(mx<gr.xmin||mx>gr.xmax||my<gr.ymin||my>gr.ymax){
     readoutEl.innerHTML='Point hors de la zone couverte.';return;
   }
-  const col=Math.floor((lon-gr.xmin)/gr.pixelWidth);
-  const row=Math.floor((gr.ymax-lat)/gr.pixelHeight);
+  const col=Math.floor((mx-gr.xmin)/gr.pixelWidth);
+  const row=Math.floor((gr.ymax-my)/gr.pixelHeight);
   const v=gr.values[0][row]?.[col];
   const pos=lat.toFixed(4)+', '+lon.toFixed(4);
 
